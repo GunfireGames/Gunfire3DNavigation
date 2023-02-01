@@ -10,6 +10,7 @@
 #include "Gunfire3DNavData.generated.h"
 
 class FEditableSvo;
+class FNavSvoGenerator;
 
 UENUM()
 enum class ENav3DDrawType : uint8
