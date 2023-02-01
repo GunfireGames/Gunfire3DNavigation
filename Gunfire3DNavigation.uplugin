@@ -1,0 +1,29 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1",
+	"FriendlyName": "Gunfire 3D Navigation Plugin",
+	"Description": "",
+	"Category": "Gunfire",
+	"CreatedBy": "Gunfire Games, LLC",
+	"CreatedByURL": "http://www.gunfiregames.com/",
+	"DocsURL": "http://www.gunfiregames.com/",
+	"MarketplaceURL": "",
+	"SupportURL": "http://www.gunfiregames.com/",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Gunfire3DNavigation",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Linux",
+				"PS5",
+				"XSX"
+			]
+		}
+	]
+}
