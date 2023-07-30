@@ -358,7 +358,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 
 		if (Tile.FillBounds.IsInsideOrOn(VoxelCoord))
 		{
-			TMortonCode VoxelMorton = FSvoUtils::CoordToMorton(VoxelCoord);
+			const TMortonCode VoxelMorton = FSvoUtils::CoordToMorton(VoxelCoord);
 			Voxels[VoxelMorton] = true;
 			DidSetVoxel = true;
 		}
@@ -383,27 +383,18 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 		}
 	};
 
-	// Since our walk along the edges is essentially Bresenham's algorithm it doesn't
-	// ensure that we hit every voxel touched, just the ones where there's an x intercept.
-	// To work around that we do an offset in the x so we make sure we get the previous
-	// coord and this coord. If we did DDA we wouldn't need this, but after profiling just
-	// skipping the offset and only setting one voxel it didn't seem to have any
-	// measurable performance impact so it's probably not worth the effort.
-	const FVector VoxelOffset(0.1, 0.0, 0.0);
-
 	FBox SwizzledBounds;
 	SwizzledBounds.Min = SwizzleCoord(FVector(Tile.FillBounds.Min), AxisMap);
 	SwizzledBounds.Max = SwizzleCoord(FVector(Tile.FillBounds.Max), AxisMap);
 
 	// Rasterize a line that only moves in the y/z axis, the x axis is fixed
-	const auto RasterizeLine2D = [&SwizzledBounds, &VoxelOffset, &RasterizeLine1D, &SetVoxel](const FVector& StartPos, const FVector& EndPos)
+	const auto RasterizeLine2D = [&SwizzledBounds, &RasterizeLine1D, &SetVoxel](const FVector& StartPos, const FVector& EndPos)
 	{
 		// At the corner of the triangle we'll often get a bunch of points that are in the
 		// same voxel, so just early out.
 		if (FSvoUtils::CoordToFixed(StartPos) == FSvoUtils::CoordToFixed(EndPos))
 		{
-			SetVoxel(StartPos + VoxelOffset);
-			SetVoxel(StartPos - VoxelOffset);
+			SetVoxel(StartPos);
 			return;
 		}
 
@@ -447,7 +438,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 		auto CalcAxisIntercept = [&StartPos, &DirectionStep, &VoxelStep](int32 Axis) -> double
 		{
 			// Gonna divide by zero if this is the case, should have caught this earlier
-			ensure(VoxelStep[Axis] != 0.0f);
+			ensure(VoxelStep[Axis] != 0.0);
 
 			// Calculate the offset from the start position to the center of the voxel
 			const double VoxelCenter = FMath::TruncToInt32(StartPos[Axis]) - StartPos[Axis] + 0.5;
@@ -456,7 +447,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 
 		// The maximum position we can move to in each axis before switching to the next voxel.
 		FVector MaxTime;
-		MaxTime.X = 0.0f;
+		MaxTime.X = 0.0;
 		MaxTime.Y = CalcAxisIntercept(1);
 		MaxTime.Z = CalcAxisIntercept(2);
 
@@ -466,8 +457,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 
 		while (CurTime < EndTime)
 		{
-			SetVoxel(CurPos + VoxelOffset);
-			SetVoxel(CurPos - VoxelOffset);
+			SetVoxel(CurPos);
 
 			// Choose next voxel
 			const FVector NextVoxelOffset = (MaxTime.Z < MaxTime.Y) ? FVector::ZAxisVector : FVector::YAxisVector;
@@ -482,8 +472,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 			CurPos += NextVoxelOffset * DirectionStep;
 		}
 
-		SetVoxel(EndPos + VoxelOffset);
-		SetVoxel(EndPos - VoxelOffset);
+		SetVoxel(EndPos);
 	};
 
 	const FIntVector VoxelCoords[] =
@@ -590,7 +579,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 		// Edge A is either the same length as edge B or shorter. If we hit the end of
 		// edge A reset so we're walking edge C. (We don't bother doing this if we also
 		// just hit the end of edge B, otherwise we'll generate some garbage data.)
-		if (CurPos0.X >= EndPos0 && CurPos1.X < EndPos1)
+		if (CurPos0.X > EndPos0 && CurPos1.X < EndPos1)
 		{
 			// FIXME: Hit this case when V2 had a teeny bit larger x value than V1
 			// (22.000000000000036 vs 22.000000000000000). Could just continue on the
@@ -765,6 +754,8 @@ void FNavSvoTileGenerator::PadVoxels(const FTileGenerationData& Tile, const TBit
 
 void FNavSvoTileGenerator::CreateTileFromVoxels(const FTileGenerationData& Tile, const TBitArray<>& Voxels, FSvoTile& TileOut) const
 {
+	LLM_SCOPE_BYTAG(Gunfire3DNavData)
+
 #if PROFILE_SVO_GENERATION
 	const uint64 StartCycle = FPlatformTime::Cycles64();
 #endif

@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "NavFilters/NavigationQueryFilter.h"
+#include "Gunfire3DNavQueryFilter.generated.h"
+
 // Default Settings
 #define NAVDATA_DEFAULT_MAX_NODES 2048
-#define NAVDATA_DEFAULT_HEURISTIC_SCALE 1.f
+#define NAVDATA_DEFAULT_HEURISTIC_SCALE 2.f
 #define NAVDATA_DEFAULT_BASE_TRAVERSAL_COST 1.f
 
 enum class EGunfire3DNavQueryFlags : uint8
@@ -67,6 +70,9 @@ struct FGunfire3DNavQueryResults
 	// How many times nodes were visited (had their neighbors opened)
 	uint32 NumNodesVisited = 0;
 
+	// How much memory was required to run the query.
+	uint32 MemUsed = 0;
+
 	virtual ~FGunfire3DNavQueryResults() {}
 	virtual void Reset()
 	{
@@ -75,6 +81,7 @@ struct FGunfire3DNavQueryResults
 		NumNodesOpened = 0;
 		NumNodesReopened = 0;
 		NumNodesVisited = 0;
+		MemUsed = 0;
 	}
 };
 
@@ -93,6 +100,7 @@ public:
 	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const override {}
 	virtual void SetBacktrackingEnabled(const bool bBacktracking) override {}
 	virtual bool IsBacktrackingEnabled() const override { return false; }
+	virtual float GetHeuristicScale() const override { return HeuristicScale; }
 	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const override;
 	virtual void SetIncludeFlags(uint16 Flags) override {}
 	virtual uint16 GetIncludeFlags() const override { return 0; }
@@ -106,7 +114,6 @@ public:
 	// A scalar applied to the cost of nodes during path finding. The larger the scale,
 	// the more the path finding will favor choosing nodes that are closer to the
 	// destination, regardless of obstacles.
-	float GetHeuristicScale() const { return HeuristicScale; }
 	void SetHeuristicScale(float Scale) { HeuristicScale = Scale; }
 
 	// The cost of moving to a new node, at minimum, during path finding. This affects
@@ -131,4 +138,35 @@ private:
 	float BaseTraversalCost = NAVDATA_DEFAULT_BASE_TRAVERSAL_COST;
 
 	FGunfire3DNavQueryConstraints Constraints;
+};
+
+//
+// Custom navigation filter for Gunfire 3D Navigation queries.
+//
+UCLASS(Abstract)
+class GUNFIRE3DNAVIGATION_API UGunfire3DNavigationQueryFilter : public UNavigationQueryFilter
+{
+	GENERATED_BODY()
+
+public:
+	// Sets the maximum number of nodes that the pathing algorithm is allow to expand
+	// before returning a partial path (or failing if partial paths are not allowed).
+	//
+	// NOTE: This can affect performance if set too high. Be sure to test performance
+	// and consider consulting a programmer before finalizing.
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay)
+	uint32 MaxPathSearchNodes = NAVDATA_DEFAULT_MAX_NODES;
+
+	// Determines how 'greedy' the pathing algorithm is while searching. The higher the
+	// value, the more the search will expand nodes closer to the destination.
+	UPROPERTY(EditDefaultsOnly)
+	float PathHeuristicScale = NAVDATA_DEFAULT_HEURISTIC_SCALE;
+
+	// Determines how expensive it is, at minimum, to move through a node. The higher the
+	// value, the more the search will favor there being less nodes in a path overall.
+	UPROPERTY(EditDefaultsOnly)
+	float NodeBaseTraversalCost = NAVDATA_DEFAULT_BASE_TRAVERSAL_COST;
+
+protected:
+	virtual void InitializeFilter(const class ANavigationData& NavData, const UObject* Querier, FNavigationQueryFilter& Filter) const override;
 };

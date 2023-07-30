@@ -8,7 +8,7 @@
 
 class UBillboardComponent;
 
-UCLASS(hidecategories = (Input, Rendering, Tags, Actor, Layers, Replication))
+UCLASS(hidecategories = (Input, Rendering, Tags, Actor, Layers, Replication), meta = (DisplayName = "3D Navigation Debug Actor"))
 class ANavSvoDebugActor : public AActor
 {
 	GENERATED_BODY()
@@ -81,6 +81,10 @@ protected:
 	// Number of nodes that were opened more than once.
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Path|Results")
 	int32 NumPathNodesReopened = 0;
+
+	// The amount of memory required, in bytes, to allocate enough nodes for this search.
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Path|Results")
+	int32 QueryMemoryUsed = 0;
 
 	// How long, in milliseconds, the path took to complete
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Path|Results")

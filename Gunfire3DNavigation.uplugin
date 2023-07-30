@@ -17,13 +17,7 @@
 		{
 			"Name": "Gunfire3DNavigation",
 			"Type": "Runtime",
-			"LoadingPhase": "PreDefault",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Linux",
-				"PS5",
-				"XSX"
-			]
+			"LoadingPhase": "PreDefault"
 		}
 	]
 }

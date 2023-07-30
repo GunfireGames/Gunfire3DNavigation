@@ -59,7 +59,7 @@ struct FNavSvoNode
 		TravelDistSqrd = 0.f;
 	}
 
-	bool operator>(const FNavSvoNode& RHS)
+	bool operator >(const FNavSvoNode& RHS) const
 	{
 		return (FCost > RHS.FCost);
 	}
@@ -71,7 +71,7 @@ public:
 	FNavSvoNodePool(uint32 InMaxNodes, uint32 InHashSize);
 	~FNavSvoNodePool();
 
-	void operator=(const FNavSvoNodePool&) {}
+	void operator =(const FNavSvoNodePool&) {}
 
 	void Clear();
 
@@ -103,13 +103,13 @@ private:
 		ID += ~(ID << 22);
 		ID ^= (ID >> 32);
 
-		return (uint32)ID;
+		return static_cast<uint32>(ID);
 	}
 
 private:
 	TArray<FNavSvoNode> Nodes;
-	TNavSvoNodeIndex* First = nullptr;
-	TNavSvoNodeIndex* Next = nullptr;
+	TNavSvoNodeIndex* First;
+	TNavSvoNodeIndex* Next;
 	const uint32 MaxNodes;
 	const uint32 HashSize;
 	uint32 NodeCount;
@@ -120,7 +120,7 @@ class FNavSvoNodeQueue
 public:
 	FNavSvoNodeQueue(uint32 InCapacity);
 	~FNavSvoNodeQueue();
-	void operator=(FNavSvoNodeQueue&) {}
+	void operator =(FNavSvoNodeQueue&) {}
 
 	void Clear() { Size = 0; }
 	bool IsEmpty() const { return (Size == 0); }
@@ -128,15 +128,15 @@ public:
 	FNavSvoNode* Top() { return Heap[0]; }
 	inline FNavSvoNode* Pop();
 	inline void Push(FNavSvoNode* Node);
-	inline void Modify(FNavSvoNode* Node);
+	inline void Modify(FNavSvoNode* Node) const;
 
 	uint32 GetMemUsed() const;
 
 	uint32 GetCapacity() const { return Capacity; }
 
 private:
-	inline void BubbleUp(uint32 NodeID, FNavSvoNode* Node);
-	inline void TrickleDown(uint32 NodeID, FNavSvoNode* Node);
+	inline void BubbleUp(uint32 NodeID, FNavSvoNode* Node) const;
+	inline void TrickleDown(uint32 NodeID, FNavSvoNode* Node) const;
 
 	FNavSvoNode** Heap;
 	const uint32 Capacity;
@@ -154,11 +154,11 @@ FNavSvoNode* FNavSvoNodePool::GetNode(FSvoNodeLink NodeLink)
 		return nullptr;
 	}
 
-	uint32 Bucket = HashNodeLink(NodeLink) & (HashSize - 1);
+	const uint32 Bucket = HashNodeLink(NodeLink) & (HashSize - 1);
 	TNavSvoNodeIndex NodeIdx = First[Bucket];
 	FNavSvoNode* Node = nullptr;
 
-	NodeIdx = (TNavSvoNodeIndex)NodeCount;
+	NodeIdx = static_cast<TNavSvoNodeIndex>(NodeCount);
 	++NodeCount;
 
 	// Init node
@@ -174,9 +174,9 @@ FNavSvoNode* FNavSvoNodePool::GetNode(FSvoNodeLink NodeLink)
 
 FNavSvoNode* FNavSvoNodePool::FindNode(FSvoNodeLink NodeLink)
 {
-	uint32 Bucket = HashNodeLink(NodeLink) & (HashSize - 1);
+	const uint32 Bucket = HashNodeLink(NodeLink) & (HashSize - 1);
 	TNavSvoNodeIndex NodeIdx = First[Bucket];
-	while (NodeIdx != (TNavSvoNodeIndex)~0)
+	while (NodeIdx != static_cast<TNavSvoNodeIndex>(~0))
 	{
 		if (Nodes[NodeIdx].NodeLink == NodeLink)
 		{
@@ -194,7 +194,7 @@ uint32 FNavSvoNodePool::GetNodeIndex(const FNavSvoNode* Node) const
 		return 0;
 	}
 
-	return (uint32)(Node - Nodes.GetData()) + 1;
+	return static_cast<uint32>(Node - Nodes.GetData()) + 1;
 }
 
 FNavSvoNode* FNavSvoNodePool::GetNodeAtIndex(uint32 Idx)
@@ -235,7 +235,7 @@ void FNavSvoNodeQueue::Push(FNavSvoNode* Node)
 	BubbleUp(Size - 1, Node);
 }
 
-void FNavSvoNodeQueue::Modify(FNavSvoNode* Node)
+void FNavSvoNodeQueue::Modify(FNavSvoNode* Node) const
 {
 	for (uint32 NodeIdx = 0; NodeIdx < Size; ++NodeIdx)
 	{
@@ -247,7 +247,7 @@ void FNavSvoNodeQueue::Modify(FNavSvoNode* Node)
 	}
 }
 
-void FNavSvoNodeQueue::BubbleUp(uint32 NodeID, FNavSvoNode* Node)
+void FNavSvoNodeQueue::BubbleUp(uint32 NodeID, FNavSvoNode* Node) const
 {
 	uint32 Parent = (NodeID - 1) / 2;
 	// NOTE: (NodeID > 0) means there is a parent
@@ -260,7 +260,7 @@ void FNavSvoNodeQueue::BubbleUp(uint32 NodeID, FNavSvoNode* Node)
 	Heap[NodeID] = Node;
 }
 
-void FNavSvoNodeQueue::TrickleDown(uint32 NodeID, FNavSvoNode* Node)
+void FNavSvoNodeQueue::TrickleDown(uint32 NodeID, FNavSvoNode* Node) const
 {
 	uint32 Child = (NodeID * 2) + 1;
 	while (Child < Size)

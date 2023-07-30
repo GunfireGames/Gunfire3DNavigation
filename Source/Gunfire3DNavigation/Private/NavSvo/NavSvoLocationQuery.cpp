@@ -246,11 +246,17 @@ bool FNavSvoNodeQuery::SearchReachableNodes(const FVector& Origin, float Distanc
 	return bQueryResult;
 }
 
-bool FNavSvoNodeQuery::FindClosestPointInNode(FSvoNodeLink NodeLink, const FVector& Origin, FVector& OutPoint)
+bool FNavSvoNodeQuery::FindClosestPointInNode(FSvoNodeLink NodeLink, const FVector& Origin, FVector& OutPoint, const FBox* Constraints) const
 {
 	FBox NodeBounds;
 	if (Octree.GetBoundsForLink(NodeLink, NodeBounds))
 	{
+		// Constrain the bounds if supplied to prevent returning a point outside of the desired range.
+		if (Constraints != nullptr)
+		{
+			NodeBounds = NodeBounds.Overlap(*Constraints);
+		}
+
 		OutPoint = NodeBounds.GetClosestPointTo(Origin);
 		return true;
 	}
@@ -258,11 +264,17 @@ bool FNavSvoNodeQuery::FindClosestPointInNode(FSvoNodeLink NodeLink, const FVect
 	return false;
 }
 
-bool FNavSvoNodeQuery::FindRandomPointInNode(FSvoNodeLink NodeLink, FVector& OutPoint)
+bool FNavSvoNodeQuery::FindRandomPointInNode(FSvoNodeLink NodeLink, FVector& OutPoint, const FBox* Constraints) const
 {
 	FBox NodeBounds;
 	if (Octree.GetBoundsForLink(NodeLink, NodeBounds))
 	{
+		// Constrain the bounds if supplied to prevent returning a point outside of the desired range.
+		if (Constraints != nullptr)
+		{
+			NodeBounds = NodeBounds.Overlap(*Constraints);
+		}
+
 		OutPoint = FMath::RandPointInBox(NodeBounds);
 		return true;
 	}

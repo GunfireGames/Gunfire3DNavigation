@@ -1131,16 +1131,13 @@ void FSparseVoxelOctree::GetTilesInBounds(const FBox& QueryBounds, TFunctionRef<
 
 uint32 FSparseVoxelOctree::GetMemUsed() const
 {
-	uint32 MemUsed = 0;
+	uint32 MemUsed = sizeof(this);
 
 	MemUsed += Tiles.GetAllocatedSize();
-
 	for (auto& Tile : Tiles)
 	{
 		MemUsed += Tile.Value.GetMemUsed();
 	}
-
-	UE_LOG(LogNavigation, Warning, TEXT("    FSparseVoxelOctree: %u\n    self: %d"), MemUsed, sizeof(FSparseVoxelOctree));
 
 	return MemUsed;
 }

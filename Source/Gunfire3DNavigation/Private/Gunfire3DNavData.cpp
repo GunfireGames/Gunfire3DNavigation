@@ -28,6 +28,8 @@ DECLARE_CYCLE_STAT(TEXT("ProjectPoint"), STAT_ProjectPoint, STATGROUP_Gunfire3DN
 DECLARE_CYCLE_STAT(TEXT("BatchProjectPoints"), STAT_BatchProjectPoints, STATGROUP_Gunfire3DNavigation);
 DECLARE_CYCLE_STAT(TEXT("GetRandomReachablePointInRadius"), STAT_GetRandomReachablePointInRadius, STATGROUP_Gunfire3DNavigation);
 
+LLM_DEFINE_TAG(Gunfire3DNavData, NAME_None, NAME_None);
+
 bool AGunfire3DNavData::bGenerationBoostMode = false;
 
 AGunfire3DNavData::AGunfire3DNavData()
@@ -56,6 +58,8 @@ AGunfire3DNavData::AGunfire3DNavData()
 
 void AGunfire3DNavData::Serialize(FArchive& Ar)
 {
+	LLM_SCOPE_BYTAG(Gunfire3DNavData)
+
 	// Mark that we are using the latest custom version
 	Ar.UsingCustomVersion(FGunfire3DNavigationCustomVersion::GUID);
 
@@ -431,37 +435,42 @@ bool AGunfire3DNavData::GetNodeBounds(NavNodeRef NodeRef, FBox& OutBounds) const
 	return false;
 }
 
-NavNodeRef AGunfire3DNavData::GetNodeAtLocation(const FVector& Location) const
+bool AGunfire3DNavData::GetNodeAtLocation(const FVector& Location, NavNodeRef& OutNodeRef) const
 {
+	OutNodeRef = SVO_INVALID_NODELINK;
+
 	if (Octree.IsValid())
 	{
 		const FSvoNodeLink NodeLink = Octree->GetLinkForLocation(Location);
-		return NodeLink.GetID();
+		OutNodeRef = NodeLink.GetID();
 	}
 
-	return INVALID_NAVNODEREF;
+	return (OutNodeRef != SVO_INVALID_NODELINK);
 }
 
-NavNodeRef AGunfire3DNavData::FindClosestNode(const FVector& Origin, const FVector& QueryExtent, FSharedConstNavQueryFilter QueryFilter) const
+bool AGunfire3DNavData::FindClosestNode(const FVector& Origin, const FVector& QueryExtent, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter) const
 {
+	OutNodeRef = SVO_INVALID_NODELINK;
+
 	if (Octree.IsValid())
 	{
 		// Resolve the query filter
 		const FNavigationQueryFilter& ResolvedQueryFilter = ResolveFilterRef(QueryFilter);
 		const uint32 MaxSearchNodes = ResolvedQueryFilter.GetMaxSearchNodes();
-		const FVector NodeQueryExtent = GetDefaultQueryExtent();
 
-		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, NodeQueryExtent);
+		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, QueryExtent);
 		const FSvoNodeLink NodeLink = NodeQuery.FindClosestNode(Origin);
 
-		return NodeLink.GetID();
+		OutNodeRef = NodeLink.GetID();
 	}
 
-	return INVALID_NAVNODEREF;
+	return (OutNodeRef != SVO_INVALID_NODELINK);
 }
 
-NavNodeRef AGunfire3DNavData::FindClosestReachableNode(const FVector& Origin, float MaxDistance, FSharedConstNavQueryFilter QueryFilter) const
+bool AGunfire3DNavData::FindClosestReachableNode(const FVector& Origin, float MaxDistance, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter) const
 {
+	OutNodeRef = SVO_INVALID_NODELINK;
+
 	if (Octree.IsValid())
 	{
 		// Resolve the query filter
@@ -474,14 +483,16 @@ NavNodeRef AGunfire3DNavData::FindClosestReachableNode(const FVector& Origin, fl
 		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, NodeQueryExtent);
 		const FSvoNodeLink NodeLink = NodeQuery.FindClosestReachableNode(Origin, MaxDistance, *QueryFilterImpl, QueryResults);
 
-		return NodeLink.GetID();
+		OutNodeRef = NodeLink.GetID();
 	}
 
-	return INVALID_NAVNODEREF;
+	return (OutNodeRef != SVO_INVALID_NODELINK);
 }
 
-NavNodeRef AGunfire3DNavData::FindRandomReachableNode(const FVector& Origin, float MaxDistance, FSharedConstNavQueryFilter QueryFilter) const
+bool AGunfire3DNavData::FindRandomReachableNode(const FVector& Origin, float MaxDistance, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter) const
 {
+	OutNodeRef = SVO_INVALID_NODELINK;
+
 	if (Octree.IsValid())
 	{
 		// Resolve the query filter
@@ -494,10 +505,10 @@ NavNodeRef AGunfire3DNavData::FindRandomReachableNode(const FVector& Origin, flo
 		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, NodeQueryExtent);
 		const FSvoNodeLink NodeLink = NodeQuery.FindRandomReachableNode(Origin, MaxDistance , *QueryFilterImpl, QueryResults);
 
-		return NodeLink.GetID();
+		OutNodeRef = NodeLink.GetID();
 	}
 
-	return INVALID_NAVNODEREF;
+	return (OutNodeRef != SVO_INVALID_NODELINK);
 }
 
 bool AGunfire3DNavData::GatherReachableNodes(const FVector& Origin, float MaxDistance, TArray<NavNodeRef>& OutResult, FSharedConstNavQueryFilter QueryFilter) const
@@ -969,8 +980,14 @@ bool AGunfire3DNavData::GetRandomPointInNavigableRadius(const FVector& Origin, f
 	return false;
 }
 
-// TODO: This is only finding the random point inside of a single node. It, instead, needs
-// to find a random node and then find a random point inside that node. - JMM
+// TODO: There are a few things wrong with this implementation.
+//
+//		 First: This is only finding the random point inside of a single node. It, instead, needs to find a random node
+//				and then find a random point inside that node.
+//
+//       Second: There is no guarantee the the node found is reachable from the origin. We do have a function for this
+//               (see FNavSvoNodeQuery::FindRandomReachableNode) but it has not been optimized so it's safer to let the
+//               caller fail to reach the location than kill performance for now.
 bool AGunfire3DNavData::GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetRandomReachablePointInRadius);
@@ -980,15 +997,19 @@ bool AGunfire3DNavData::GetRandomReachablePointInRadius(const FVector& Origin, f
 		// Resolve the query filter
 		const FNavigationQueryFilter& ResolvedQueryFilter = ResolveFilterRef(QueryFilter);
 		const uint32 MaxSearchNodes = ResolvedQueryFilter.GetMaxSearchNodes();
-		const FVector NodeQueryExtent = GetDefaultQueryExtent();
+		const FVector QueryExtent(Radius);
 
-		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, NodeQueryExtent);
+		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, QueryExtent);
 		const FSvoNodeLink NodeLink = NodeQuery.FindClosestNode(Origin);
 
 		if (NodeLink.IsValid())
 		{
+			// We need to pass the query bounds when finding the closest point on the node as the node could be much
+			// larger than the range were originally searching.
+			FBox QueryBounds = FBox::BuildAABB(Origin, QueryExtent);
+
 			FVector Location;
-			if (NodeQuery.FindRandomPointInNode(NodeLink, Location))
+			if (NodeQuery.FindRandomPointInNode(NodeLink, Location, &QueryBounds))
 			{
 				OutResult.Location = Location;
 				OutResult.NodeRef = NodeLink.GetID();
@@ -1009,15 +1030,18 @@ bool AGunfire3DNavData::ProjectPoint(const FVector& Point, FNavLocation& OutLoca
 		// Resolve the query filter
 		const FNavigationQueryFilter& ResolvedQueryFilter = ResolveFilterRef(QueryFilter);
 		const uint32 MaxSearchNodes = ResolvedQueryFilter.GetMaxSearchNodes();
-		const FVector NodeQueryExtent = GetDefaultQueryExtent();
 
-		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, NodeQueryExtent);
+		FNavSvoNodeQuery NodeQuery(*Octree, MaxSearchNodes, QueryExtent);
 		const FSvoNodeLink NodeLink = NodeQuery.FindClosestNode(Point);
 
 		if (NodeLink.IsValid())
 		{
+			// We need to pass the query bounds when finding the closest point on the node as the node could be much
+			// larger than the range were originally searching.
+			FBox QueryBounds = FBox::BuildAABB(Point, QueryExtent);
+
 			FVector Location;
-			if (NodeQuery.FindClosestPointInNode(NodeLink, Point, Location))
+			if (NodeQuery.FindClosestPointInNode(NodeLink, Point, Location, &QueryBounds))
 			{
 				OutLocation.Location = Location;
 				OutLocation.NodeRef = NodeLink.GetID();
@@ -1055,21 +1079,21 @@ void AGunfire3DNavData::BatchProjectPoints(TArray<FNavigationProjectionWork>& Wo
 	}
 }
 
-ENavigationQueryResult::Type AGunfire3DNavData::CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
+ENavigationQueryResult::Type AGunfire3DNavData::CalcPathCost(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathCost, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
 {
-	float TmpPathLength = 0.f;
+	FVector::FReal TmpPathLength = 0.0;
 	ENavigationQueryResult::Type Result = CalcPathLengthAndCost(PathStart, PathEnd, TmpPathLength, OutPathCost, QueryFilter, Querier);
 	return Result;
 }
 
-ENavigationQueryResult::Type AGunfire3DNavData::CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
+ENavigationQueryResult::Type AGunfire3DNavData::CalcPathLength(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathLength, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
 {
-	float TmpPathCost = 0.f;
+	FVector::FReal TmpPathCost = 0.0;
 	ENavigationQueryResult::Type Result = CalcPathLengthAndCost(PathStart, PathEnd, OutPathLength, TmpPathCost, QueryFilter, Querier);
 	return Result;
 }
 
-ENavigationQueryResult::Type AGunfire3DNavData::CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
+ENavigationQueryResult::Type AGunfire3DNavData::CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathLength, FVector::FReal& OutPathCost, FSharedConstNavQueryFilter QueryFilter /* = nullptr */, const UObject* Querier /* = nullptr */) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_CalcPathLengthAndCost);
 
@@ -1114,7 +1138,8 @@ ENavigationQueryResult::Type AGunfire3DNavData::CalcPathLengthAndCost(const FVec
 
 bool AGunfire3DNavData::IsNodeRefValid(NavNodeRef NodeRef) const
 {
-	if (!Octree.IsValid() || NodeRef == INVALID_NAVNODEREF)
+	// FIXME: This is a little tricky as an invalid NavNodeRef is actually a valid SvoNodeLink.
+	if (!Octree.IsValid() || NodeRef == INVALID_NAVNODEREF || NodeRef == SVO_INVALID_NODELINK)
 	{
 		return false;
 	}

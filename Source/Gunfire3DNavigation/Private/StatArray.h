@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 // TStatArray is the TArray with memory tracking.  By default, all memory will be tracked
 // within the 'Misc Array Memory' category.  To add the memory to a different category,
 // either pass GET_STATID(STAT_MyStatName) to the constructor of the TStatArray or call
@@ -113,10 +115,4 @@ public:
 		Super::AllocatorInstance.StatID = InStatID;
 	}
 #endif
-};
-
-template<typename InElementType>
-struct TContainerTraits<TStatArray<InElementType> > : public TContainerTraitsBase<TStatArray<InElementType> >
-{
-	enum { MoveWillEmptyContainer = TContainerTraits<typename TStatArray<InElementType>::Super>::MoveWillEmptyContainer };
 };

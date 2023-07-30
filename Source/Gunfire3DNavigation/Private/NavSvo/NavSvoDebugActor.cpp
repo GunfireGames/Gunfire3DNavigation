@@ -258,6 +258,7 @@ void ANavSvoDebugActor::RebuildPath()
 		NumPathNodesQueried = GenerationInfo.NumNodesQueried;
 		NumPathNodesOpened = GenerationInfo.NumNodesOpened;
 		NumPathNodesReopened = GenerationInfo.NumNodesReopened;
+		QueryMemoryUsed = GenerationInfo.MemUsed;
 	}
 }
 

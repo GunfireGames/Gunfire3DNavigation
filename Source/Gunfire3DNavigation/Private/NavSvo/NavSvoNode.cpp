@@ -35,11 +35,11 @@ FNavSvoNodePool::FNavSvoNodePool(uint32 InMaxNodes, uint32 InHashSize)
 	check(MaxNodes > 0);
 
 	Nodes.SetNum(MaxNodes);
-	First = (TNavSvoNodeIndex*)FMemory::Malloc(sizeof(TNavSvoNodeIndex) * InHashSize);
-	Next = (TNavSvoNodeIndex*)FMemory::Malloc(sizeof(TNavSvoNodeIndex) * MaxNodes);
+	First = static_cast<TNavSvoNodeIndex*>(FMemory::Malloc(sizeof(TNavSvoNodeIndex) * InHashSize));
+	Next = static_cast<TNavSvoNodeIndex*>(FMemory::Malloc(sizeof(TNavSvoNodeIndex) * MaxNodes));
 
-	check(Next);
-	check(First);
+	// Halt execution if allocation fails so we don't stomp valid memory on the next few lines and corrupt memory.
+	check(Next != nullptr && First != nullptr);
 
 	FMemory::Memset(First, 0xFF, sizeof(TNavSvoNodeIndex) * HashSize);
 	FMemory::Memset(Next, 0xFF, sizeof(TNavSvoNodeIndex) * MaxNodes);
@@ -59,8 +59,7 @@ void FNavSvoNodePool::Clear()
 
 uint32 FNavSvoNodePool::GetMemUsed() const
 {
-	return sizeof(*this)
-		+ sizeof(FNavSvoNode) * MaxNodes
+	return sizeof(FNavSvoNode) * MaxNodes
 		+ sizeof(TNavSvoNodeIndex) * MaxNodes
 		+ sizeof(TNavSvoNodeIndex) * HashSize;
 }
@@ -73,9 +72,9 @@ FNavSvoNodeQueue::FNavSvoNodeQueue(uint32 InCapacity)
 	, Capacity(InCapacity)
 	, Size(0)
 {
-	checkf(Capacity > 0, TEXT("Attempting to create node queue with size of zero!"));
+	ensureMsgf(Capacity > 0, TEXT("Attempting to create node queue with size of zero!"));
 
-	Heap = (FNavSvoNode**)FMemory::Malloc(sizeof(FNavSvoNode*) * (Capacity + 1));
+	Heap = static_cast<FNavSvoNode**>(FMemory::Malloc(sizeof(FNavSvoNode*) * (Capacity + 1)));
 	checkf(Heap, TEXT("Failed to create heap for node queue!"));
 }
 
@@ -86,5 +85,5 @@ FNavSvoNodeQueue::~FNavSvoNodeQueue()
 
 uint32 FNavSvoNodeQueue::GetMemUsed() const
 {
-	return sizeof(*this) + sizeof(FNavSvoNode*) * (Capacity + 1);
+	return sizeof(FNavSvoNode*) * (Capacity + 1);
 }

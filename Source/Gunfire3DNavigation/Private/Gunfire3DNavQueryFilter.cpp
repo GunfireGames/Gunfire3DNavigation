@@ -2,6 +2,7 @@
 
 #include "Gunfire3DNavQueryFilter.h"
 
+#include "Gunfire3DNavData.h"
 #include "Gunfire3DNavigationUtils.h"
 #include "NavSvo/NavSvoQuery.h"
 
@@ -52,4 +53,28 @@ bool FGunfire3DNavQueryFilter::IsEqual(const INavigationQueryFilterInterface* Ot
 INavigationQueryFilterInterface* FGunfire3DNavQueryFilter::CreateCopy() const
 {
 	return new FGunfire3DNavQueryFilter(*this);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Gunfire3DNavigationQueryFilter
+//////////////////////////////////////////////////////////////////////////
+
+void UGunfire3DNavigationQueryFilter::InitializeFilter(const ANavigationData& NavData, const UObject* Querier, FNavigationQueryFilter& Filter) const
+{
+	if (NavData.GetClass()->IsChildOf(AGunfire3DNavData::StaticClass()))
+	{
+		FSharedNavQueryFilter NavQueryFilter = NavData.GetDefaultQueryFilter()->GetCopy();
+		NavQueryFilter->SetMaxSearchNodes(MaxPathSearchNodes);
+
+		Filter.SetFilterType<FGunfire3DNavQueryFilter>();
+		if (FGunfire3DNavQueryFilter* NavFilterImpl = static_cast<FGunfire3DNavQueryFilter*>(Filter.GetImplementation()))
+		{
+			NavFilterImpl->SetHeuristicScale(PathHeuristicScale);
+			NavFilterImpl->SetBaseTraversalCost(NodeBaseTraversalCost);
+		}
+
+		Filter.SetMaxSearchNodes(MaxPathSearchNodes);
+	}
+
+	Super::InitializeFilter(NavData, Querier, Filter);
 }

@@ -148,16 +148,16 @@ public:
 	//
 	// NOTE: This will only return a valid node if it isn't blocked and exists within the
 	// generated bounds.
-	NavNodeRef GetNodeAtLocation(const FVector& Location) const;
+	bool GetNodeAtLocation(const FVector& Location, NavNodeRef& OutNodeRef) const;
 
 	// Finds the closest node within an extent from the supplied origin.
-	NavNodeRef FindClosestNode(const FVector& Origin, const FVector& QueryExtent, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
+	bool FindClosestNode(const FVector& Origin, const FVector& QueryExtent, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
 
 	// Finds the closest reachable node from the supplied origin.
-	NavNodeRef FindClosestReachableNode(const FVector& Origin, float MaxDistance, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
+	bool FindClosestReachableNode(const FVector& Origin, float MaxDistance, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
 
 	// Finds a reachable location from the supplied origin.
-	NavNodeRef FindRandomReachableNode(const FVector& Origin, float MaxDistance, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
+	bool FindRandomReachableNode(const FVector& Origin, float MaxDistance, NavNodeRef& OutNodeRef, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
 
 	// Collects all reachable nodes from the supplied origin.
 	bool GatherReachableNodes(const FVector& Origin, float MaxDistance, TArray<NavNodeRef>& OutResult, FSharedConstNavQueryFilter QueryFilter = nullptr) const;
@@ -250,9 +250,6 @@ public:
 	// Callback registered with ANavigationData for testing the path to a location
 	static bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 
-	// Callback for testing the path to a location via hierarchical graph
-	static bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
-
 	// Raycast implementation required by ANavigationData
 	static bool NavDataRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, FSharedConstNavQueryFilter QueryFilter, const UObject* Querier = nullptr);
 
@@ -283,13 +280,13 @@ public:
 	virtual void BatchProjectPoints(TArray<FNavigationProjectionWork>& Workload, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
 
 	// Calculates path from PathStart to PathEnd and retrieves its cost.
-	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
+	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathCost, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
 
 	// Calculates path from PathStart to PathEnd and retrieves its length.
-	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
+	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathLength, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
 
 	// Calculates path from PathStart to PathEnd and retrieves its length.
-	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
+	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, FVector::FReal& OutPathLength, FVector::FReal& OutPathCost, FSharedConstNavQueryFilter QueryFilter = nullptr, const UObject* Querier = nullptr) const override;
 
 	// Determines whether the specified NavNodeRef is still valid
 	virtual bool IsNodeRefValid(NavNodeRef NodeRef) const override;

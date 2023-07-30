@@ -579,6 +579,7 @@ bool FNavSvoGenerator::TryRunPendingGenerator(bool ForceStart)
 
 bool FNavSvoGenerator::AddGeneratedTiles(FNavSvoTileGenerator& TileGenerator, const uint64 EndCycle)
 {
+	LLM_SCOPE_BYTAG(Gunfire3DNavData)
 	SCOPE_CYCLE_COUNTER(STAT_NavSvoGenerator_AddGeneratedTiles);
 
 	bool AddedAllTiles = true;

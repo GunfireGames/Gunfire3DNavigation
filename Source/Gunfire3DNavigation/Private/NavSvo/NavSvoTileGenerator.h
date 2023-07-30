@@ -108,9 +108,6 @@ private:
 
 	void CreateTileFromVoxels(const FTileGenerationData& Tile, const TBitArray<>& Voxels, FSvoTile& TileOut) const;
 
-	// Removes unnecessary nodes where all the children are in the same state as the parent
-	void OptimizeTiles(FTileGenerationData& Tile);
-
 	// Helper for OptimizeTiles
 	ENodeState CollapseUnneededNodes(FSvoTile& Tile, FSvoNode& Node) const;
 

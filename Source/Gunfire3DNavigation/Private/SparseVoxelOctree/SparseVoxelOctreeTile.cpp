@@ -326,7 +326,8 @@ void FSvoTile::Assume(FSvoTile& SourceTile)
 
 uint32 FSvoTile::GetMemUsed() const
 {
-	uint32 MemUsed = 0;
+	uint32 MemUsed = sizeof(this);
+
 	MemUsed += NodePool.GetAllocatedSize();
 	MemUsed += Layers.GetAllocatedSize();
 

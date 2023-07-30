@@ -54,6 +54,9 @@ bool FNavSvoQuery::SearchNodes(FSvoNodeLink InStartNodeLink, const FGunfire3DNav
 	Filter = &InFilter;
 	Results = &InOutResults;
 
+	// Everything is pre-allocated prior to the query to just assign the mem allocation value now.
+	Results->MemUsed = GetMemUsed();
+
 	// Bail if the node pool or open list failed to instantiate
 	if (NodePool.GetMaxNodes() == 0)
 	{
@@ -478,4 +481,11 @@ float FNavSvoQuery::GetTraversalCost(FSvoNodeLink FromLink, FSvoNodeLink ToLink,
 	float TraversalCost = Filter->GetBaseTraversalCost();
 	TraversalCost *= (1.f - (Octree.GetConfig().GetResolutionForLink(ToLink) / Octree.GetConfig().GetTileResolution()));
 	return TraversalCost;
+}
+
+uint32 FNavSvoQuery::GetMemUsed() const
+{
+	return sizeof(*this) +
+		NodePool.GetMemUsed() +
+		OpenList.GetMemUsed();
 }

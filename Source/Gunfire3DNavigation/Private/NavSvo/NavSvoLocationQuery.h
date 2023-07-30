@@ -24,10 +24,10 @@ public:
 	bool SearchReachableNodes(const FVector& Origin, float DistanceLimit, TFunction<bool(NavNodeRef)> InNodeVisitedCallback, const FGunfire3DNavQueryFilter& InFilter, FGunfire3DNavQueryResults& InOutResults);
 
 	// Returns the point closest to the origin within the bounds of the specified node.
-	bool FindClosestPointInNode(FSvoNodeLink NodeLink, const FVector& Origin, FVector& OutPoint);
+	bool FindClosestPointInNode(FSvoNodeLink NodeLink, const FVector& Origin, FVector& OutPoint, const FBox* Constraints = nullptr) const;
 
 	// Returns a random point within the bounds of the specified node
-	bool FindRandomPointInNode(FSvoNodeLink NodeLink, FVector& OutPoint);
+	bool FindRandomPointInNode(FSvoNodeLink NodeLink, FVector& OutPoint, const FBox* Constraints = nullptr) const;
 
 private:
 	//~ Begin FNavSvoQuery

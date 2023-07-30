@@ -36,3 +36,5 @@ namespace Gunfire3DNavigation
 		bool HasHit() const { return HitTime != MAX_flt; }
 	};
 }
+
+LLM_DECLARE_TAG(Gunfire3DNavData);

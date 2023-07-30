@@ -263,8 +263,6 @@ uint32 FEditableSvo::GetMemUsed() const
 	uint32 MemUsed = 0;
 	MemUsed += DirtyNodes.GetAllocatedSize();
 
-	UE_LOG(LogNavigation, Warning, TEXT("    FEditableSvo: %u\n    self: %d"), MemUsed, sizeof(FEditableSvo));
-
 	return SuperMemUsed + MemUsed;
 }
 

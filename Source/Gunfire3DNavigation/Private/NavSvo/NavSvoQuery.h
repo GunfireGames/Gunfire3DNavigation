@@ -35,6 +35,8 @@ protected:
 	virtual bool CanOpenNeighbor(ESvoNeighbor Neighbor, FSvoNodeLink NeighborLink, const FSvoNode& NeighborNode, float NeighborCost, float NeighborDistanceSqrd) { return true; }
 	virtual void OnOpenNeighbor(FNavSvoNode& FromSearchNode, FNavSvoNode& NeighborSearchNode) {}
 
+	virtual uint32 GetMemUsed() const;
+
 private:
 	inline FNavSvoNode* TryAddSearchNode(FSvoNodeLink NodeLink);
 
