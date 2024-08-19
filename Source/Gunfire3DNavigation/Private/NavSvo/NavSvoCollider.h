@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "Gunfire3DNavigationTypes.h"
 #include "NavSvoGeneratorConfig.h"
 #include "SparseVoxelOctree/SparseVoxelOctreeUtils.h"
+
+#include "AI/NavigationModifier.h"
 
 // Collision interface that test against the nav octree
 struct FNavigationOctreeCollider

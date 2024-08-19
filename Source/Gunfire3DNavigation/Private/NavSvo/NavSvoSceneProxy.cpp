@@ -6,6 +6,8 @@
 #include "NavSvoGenerator.h"
 #include "SparseVoxelOctree/EditableSparseVoxelOctree.h"
 
+#include "Misc/EngineVersionComparison.h"
+
 const FColor FNavSvoSceneProxy::LayerColors[] =
 {
 	FColor::Red,	// Voxel layer
@@ -158,19 +160,32 @@ void FNavSvoSceneProxy::InitRenderData(const TArray<FTileBuildData>& BuildData)
 	ENQUEUE_RENDER_COMMAND(LineSetVertexBuffersInit)(
 		[this](FRHICommandListImmediate& RHICmdList)
 		{
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 			VertexBuffers.PositionVertexBuffer.InitResource();
 			VertexBuffers.StaticMeshVertexBuffer.InitResource();
 			VertexBuffers.ColorVertexBuffer.InitResource();
+#else
+			VertexBuffers.PositionVertexBuffer.InitResource(RHICmdList);
+			VertexBuffers.StaticMeshVertexBuffer.InitResource(RHICmdList);
+			VertexBuffers.ColorVertexBuffer.InitResource(RHICmdList);
+#endif
 
 			FLocalVertexFactory::FDataType Data;
 			VertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(&VertexFactory, Data);
 			VertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(&VertexFactory, Data);
 			VertexBuffers.StaticMeshVertexBuffer.BindTexCoordVertexBuffer(&VertexFactory, Data);
 			VertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(&VertexFactory, Data);
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 			VertexFactory.SetData(Data);
 
 			VertexFactory.InitResource();
 			IndexBuffer.InitResource();
+#else
+			VertexFactory.SetData(RHICmdList, Data);
+
+			VertexFactory.InitResource(RHICmdList);
+			IndexBuffer.InitResource(RHICmdList);
+#endif
 
 #if WITH_EDITOR
 			// We don't use any one-frame proxy materials, so make sure to register our

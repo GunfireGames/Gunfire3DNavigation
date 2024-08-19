@@ -1,9 +1,12 @@
 // Copyright Gunfire Games, LLC. All Rights Reserved.
-// Most of this is taken directly from "RecastNavMeshGenerator.cpp, Unreal Engine 4" with slight modifications
+
+// Most of this is taken directly from RecastNavMeshGenerator.cpp, with slight modifications
 
 #pragma once
 
 #include "AI/NavigationSystemHelpers.h"
+#include "AI/Navigation/NavigationRelevantData.h"
+
 #include "StatArray.h"
 
 // A simple struct for storing geometry. This is expected to be binary compatible with

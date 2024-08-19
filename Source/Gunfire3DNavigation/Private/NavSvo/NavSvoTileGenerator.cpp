@@ -6,6 +6,8 @@
 #include "Gunfire3DNavigationUtils.h"
 #include "NavSvoGenerator.h"
 
+#include "AI/Navigation/NavigationRelevantData.h"
+
 FNavSvoTileGenerator::FNavSvoTileGenerator(const FNavSvoGenerator& InParent, const FNavSvoGeneratorConfig& InConfig)
 	: Config(InConfig)
 	, bIsComplete(false)
@@ -207,7 +209,7 @@ void FNavSvoTileGenerator::AddReferencedObjects(FReferenceCollector& Collector)
 	{
 		for (FNavigationOctreeCollider::TNavigationData& RelevantData : Tile->CollisionInterface.NavigationRelevantData)
 		{
-			UObject* Owner = RelevantData->GetOwner();
+			TObjectPtr<UObject> Owner = RelevantData->GetOwner();
 			if (Owner)
 			{
 				Collector.AddReferencedObject(Owner);
@@ -599,7 +601,7 @@ bool FNavSvoTileGenerator::RasterizeTriangle(FTileGenerationData& Tile, TArrayVi
 
 bool FNavSvoTileGenerator::FillBlockers(const FTileGenerationData& Tile, const FVector& TileMin, TBitArray<>& Voxels) const
 {
-	const float VoxelSize = Config.GetVoxelSize();
+	const double VoxelSize = Config.GetVoxelSize();
 
 	const auto ToVoxelSpace = [&TileMin, &VoxelSize](const FVector& Pos) -> FVector
 	{
@@ -633,16 +635,16 @@ bool FNavSvoTileGenerator::FillBlockers(const FTileGenerationData& Tile, const F
 
 			ConvexVol.Planes.Add(FPlane(A, B, A + BlockerHeight));
 
-			BlockerBounds += (A + FVector(0, 0, (Blocker.MinZ / VoxelSize)));
+			BlockerBounds += (A + FVector(0.0, 0.0, (Blocker.MinZ / VoxelSize)));
 			if (PointIdx == 0)
 			{
-				BlockerBounds += (A + FVector(0, 0, (Blocker.MaxZ / VoxelSize)));
+				BlockerBounds += (A + FVector(0.0, 0.0, (Blocker.MaxZ / VoxelSize)));
 			}
 		}
 
 		// Cap it off with a top and a bottom
-		ConvexVol.Planes.Add(FPlane(FVector(0.0f, 0.0f, (Blocker.MaxZ - TileMin.Z) / VoxelSize), FVector::UpVector));
-		ConvexVol.Planes.Add(FPlane(FVector(0.0f, 0.0f, (Blocker.MinZ - TileMin.Z) / VoxelSize), -FVector::UpVector));
+		ConvexVol.Planes.Add(FPlane(FVector(0.0, 0.0, (Blocker.MaxZ - TileMin.Z) / VoxelSize), FVector::UpVector));
+		ConvexVol.Planes.Add(FPlane(FVector(0.0, 0.0, (Blocker.MinZ - TileMin.Z) / VoxelSize), -FVector::UpVector));
 
 		ConvexVol.Init();
 

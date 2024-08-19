@@ -6,6 +6,7 @@
 
 #include "DrawDebugHelpers.h"
 #include "NavigationSystem.h"
+#include "NavAreas/NavArea.h"
 #if WITH_RECAST
 // Recast-specific helpers
 #include "NavMesh/RecastHelpers.h"
